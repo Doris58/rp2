@@ -1,3 +1,9 @@
+<!--
+    ZADATAK.
+    Skripta treba pročitati poslane pribrojnike 
+    i ispisati njih i njihov zbroj.
+-->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
