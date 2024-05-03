@@ -1,4 +1,4 @@
-### (Minimlani) uvjeti koje web-aplikacija mora zadovoljavati nalaze se u datoteci zadatak.pdf.
+### Minimalni uvjeti koje web-aplikacija mora zadovoljavati nalaze se u datoteci zadatak.pdf.
 
 ### Web-aplikacija dostupna je na sljedećoj poveznici:
 
