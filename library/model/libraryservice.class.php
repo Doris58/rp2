@@ -38,7 +38,7 @@ class LibraryService
         return $books;
     }
 
-    function getBooksByAuthor($author)
+    function getBooksByAuthor($author)  //MALO MODIFICIRATI GORNJU FJU (ISTO DOHVAT POPISA KNJIGA) ---- :AUTHOR ????  
     {
         $db = DB::getConnection();
         $st = $db->prepare('SELECT * FROM books WHERE author = ') . "$author";  //*** */
