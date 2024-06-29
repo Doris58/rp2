@@ -16,7 +16,7 @@
         function search()
         {
             $title = 'Pretraživanje knjiga po autoru';
-            require_once __DIR__ . '/../view/search_index.php';
+            require_once __DIR__ . '/../view/books_search.php';
         }
 
         function searchResults()
