@@ -17,8 +17,8 @@
     <h1> Knjižnica <!-- <?php /* echo $title; */ ?> --> </h1>
 
     <ul>
-        <li> <a href = "users_index.php">Popis svih korisnika</a> </li>  <!-- *** -->
-        <li> <a href = "./books_index.php">Popis svih knjiga</a> </li>
-        <li> <a href = "./search_index.php"> Pretraživanje knjiga </a> </li>
+        <li> <a href = "index.php?rt=users/index">Popis svih korisnika</a> </li>  <!-- OVIME KORISNIK SALJEPODATKE (GET-om, GET-om kroz URL, salje parametar rt skripti index.php) -->
+        <li> <a href = "index.php?rt=books/index">Popis svih knjiga</a> </li>
+        <li> <a href = "index.php?rt=books/search"> Pretraživanje knjiga </a> </li>
     </ul>
  
