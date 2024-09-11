@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VAR</title>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.js"></script>
+
+    <style>
+        .dres { display: inline-block; border: 1px solid black; width: 30px; height: 30px; padding: 5px; }
+        #naziv_situacije, #opis_situacije { font-weight: bold; }
+        #glasanje, #glas { font-size: 1.2em; }
+        #canvas { margin: auto; display: block; }
+    </style>
+</head>
+<body>
+
+    <button id = "btn_preth">Prethodna situacija</button>
+    <span id = "naziv_situacije"></span>  
+    <button id = "btn_sljed">Sljedeća situacija</button>
+
+    <br/> <br/>
+
+    <h1 id = "utakmica"></h1>
+    <p id = "opis_situacije"></p>
+    <p id = "glasovi"></p>
+    <span id = "glasanje"></span>  <span id = "glas"></span>  <button id = "btn_glasaj">Glasaj!</button>
+   
+    <br/> <br/>
+
+    <canvas width = "550" height = "375" id = "canvas"></canvas>
+
+     <!-- NAPOMENA: glas ce biti $('#glas').html() , tj. u span-u #glas -->
+    <script>
+        /* globalne varijable */
+        let N = 1;
+        let N_pokusaj = 1;
+        const ctx = $('#canvas').get(0).getContext('2d'); 
+        let igra = null; /* radi event handler-a na canvasu */
+        let ima_kvadrata_oko_lopte = 0;
+        let ima_linije_kroz_igraca = 0;
+
+        $(document).ready(function()
+        {
+            ajax_poziv('init');
+
+            $('#btn_preth').on('click', prelazak_na_preth);
+            $('#btn_sljed').on('click', prelazak_na_sljed);
+            $('#btn_glasaj').on('click', posalji_glas);
+
+            $('#canvas').on('click', glasaj);
+        });
+
+        /******** EVENT HANDLER-I ***********************************************************/
+     
+        function prelazak_na_preth()
+        {
+            N_pokusaj = N - 1;         
+            ajax_poziv('init');  
+        }
+
+        function prelazak_na_sljed()
+        {
+            N_pokusaj = N + 1;
+            ajax_poziv('init');
+        }
+
+        function posalji_glas()
+        {
+            if(localStorage.getItem('sit' + N) === null)
+            {
+                //moze i samo je li glasao ili ne, a ne bas koji je glas
+                localStorage.setItem('sit' + N, $('#glas').html());
+
+                ajax_poziv('glasaj');
+            }
+            else
+                alert('Već ste glasali za ovu situaciju!');           
+        }  
+
+        function glasaj(event)
+        {
+            if(igra === null) return; /* za svaki slucaj */
+
+            let rect = this.getBoundingClientRect();
+
+            /* koord. moraju biti one na canvasu => zato - rect.left i - rect.top */
+            let x = event.clientX - rect.left;
+            let y = event.clientY - rect.top;
+
+            if(igra.tip_situacije === 'gol')
+                glasaj_GOL(x, y);   
+
+            if(igra.tip_situacije === 'offside')
+                glasaj_OFFSIDE(x, y);
+        }
+
+        function glasaj_GOL(x, y)
+        {
+            if(ima_kvadrata_oko_lopte)
+            {
+                nacrtaj_teren();
+                nacrtaj_loptu_i_igrace(igra);
+                ima_kvadrata_oko_lopte = 0;
+            }
+
+            /* situacija GOL => srediste lopte je njezina DRUGA koordinata */
+            /* koord. moraju biti one na canvasu => zato + 25 */
+            let lopta_x = igra.lopta[1].x + 25;
+            let lopta_y = igra.lopta[1].y + 25;
+            let udaljenost = Math.sqrt((x - lopta_x) * (x - lopta_x) + (y - lopta_y) * (y - lopta_y));
+
+            /* zadano je da je radijus lopte = 7 */
+            if(udaljenost <= 7) /* kliknuto je na loptu */
+            {
+                $('#glas').html('DA');
+
+                /* crtam kvadrat oko lopte, malo veci, npr. 20 x 20 */
+                ctx.lineWidth = 1;
+                ctx.strokeStyle = 'white';
+                ctx.setLineDash([5, 3]);
+                ctx.strokeRect(lopta_x - 10, lopta_y - 10, 20, 20);
+                ctx.setLineDash([]);
+
+                ima_kvadrata_oko_lopte = 1;
+            }
+            else /* nije kliknuto na loptu */
+                $('#glas').html('NE');
+        }
+
+        function glasaj_OFFSIDE(x, y)
+        {
+            if(ima_linije_kroz_igraca)
+            {
+                nacrtaj_teren();
+                nacrtaj_loptu_i_igrace(igra);
+                ima_linije_kroz_igraca = 0;
+            }
+
+            /* provjeravam je li kliknuto na igraca prve ekipe */
+            for(let i = 0; i < igra.tim1.igraci.length; i++)
+            {
+                if(provjeri_igraca(x, y, igra.tim1.igraci[i], 1) === true)
+                    return;
+            }
+
+            /* provjeravam je li kliknuto na igraca druge ekipe */
+            for(let i = 0; i < igra.tim2.igraci.length; i++)
+            {
+                if(provjeri_igraca(x, y, igra.tim2.igraci[i], 2) === true)
+                    return;      
+            }
+
+            /* nije kliknuto na igraca */
+            $('#glas').html('NE');
+        }
+
+        function provjeri_igraca(x, y, igrac, tim)
+        {
+            /* koord. moraju biti one na canvasu => zato + 25 */
+            let igrac_x = igrac.x + 25;
+            let igrac_y = igrac.y + 25;
+
+            /*  koord. igraca su koord. SREDISTA igraca, zato +/- 8 */
+            if(x >= igrac_x - 8 && x <= igrac_x + 8 && y >= igrac_y - 8 && y <= igrac_y + 8)
+            {
+                if(tim === 1) /* kliknuto je na igraca PRVE ekipe */
+                    $('#glas').html('NE');
+
+                if(tim === 2) /* kliknuto je na igraca DRUGE ekipe */
+                    $('#glas').html('DA');
+
+                /* crtam  horizontalnu liniju kroz tog igraca */
+                ctx.lineWidth = 1;
+                ctx.strokeStyle = 'white';
+                ctx.setLineDash([5, 3]);
+                ctx.beginPath();
+                ctx.moveTo(0, igrac_y);
+                ctx.lineTo(550, igrac_y);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                ima_linije_kroz_igraca = 1;
+
+                return true;
+            }
+
+            return false; 
+        }
+
+        /******** AJAX POZIVI I FUNKCIJA SUCCESS *****************************************************/
+
+        function ajax_poziv(vrsta_poziva)
+        {
+            let data = null;
+
+            if(vrsta_poziva === 'init')
+            data = 
+                {
+                    situacija: N_pokusaj
+                };
+
+            if(vrsta_poziva === 'glasaj')
+            data = 
+                {
+                    situacija: N,
+                    glas: $('#glas').html() 
+                };
+
+            $.ajax
+            (
+                {
+                    url: 'https://rp2.studenti.math.hr/~zbujanov/dz4/var.php',
+                    data: data,
+                    method: 'GET',
+                    dataType: 'json',
+                    success: success,
+                    error: function(xhr, status)
+                            {
+                                if(status !== null)
+                                    console.log('Greška prilikom Ajax poziva: ' + status);
+                            }
+                }
+            );
+        }
+
+        function success(data)
+        {
+            if(data.error !== undefined) /* nema pokusane situacije */
+            {
+                alert(data.error);
+                N_pokusaj = N;
+                return;
+            }
+
+            /* ako se pokusavalo s drugom sit, ima pokusane situacije, i to je sad nova trenutna */
+            if(N !== N_pokusaj)
+                N = N_pokusaj;
+
+            ispisi_informacije(data);
+
+            nacrtaj_teren();
+
+            nacrtaj_loptu_i_igrace(data);
+           
+            igra = data;  /* za obradu događaja na canvasu */
+        }
+
+        function ispisi_informacije(data)
+        {
+            /* tek nakon što server uspješno vrati situaciju */
+            $('#naziv_situacije').html('Situacija broj ' + N);
+
+            $('#utakmica').html('Utakmica: '); 
+
+            let dres1 = $('<span>'); 
+            dres1.addClass('dres'); 
+            dres1.css('background-color', data.tim1.boja);
+            $('#utakmica').append(dres1);
+
+            $('#utakmica').append(' ' + data.tim1.ime + ' - ' + data.tim2.ime + ' ');  
+
+            let dres2 = $('<span>');
+            dres2.addClass('dres');
+            dres2.css('background-color', data.tim2.boja);
+            $('#utakmica').append(dres2);
+
+            $('#opis_situacije').html('Provjera je li ' + data.tim1.ime + ' ');
+            if(data.tip_situacije === 'offside')
+                $('#opis_situacije').append('napravila offside.'); 
+            if(data.tip_situacije === 'gol')
+                $('#opis_situacije').append('dala gol.');
+
+            $('#glasovi').html('Do sada: ' + data.broj_glasova[0] + ' gledatelja kaže DA, '
+                                + data.broj_glasova[1] + ' gledatelja kaže NE.');
+
+            $('#glasanje').html('Glasajte je li ');
+            if(data.tip_situacije === 'offside')
+                $('#glasanje').append('offside!'); 
+            if(data.tip_situacije === 'gol')
+                $('#glasanje').append('gol!');
+            $('#glasanje').append(' Vaša odluka je: ');
+
+            /* na pocetku je odluka NE */
+            $('#glas').html('NE');
+        }
+
+        function nacrtaj_teren()
+        {
+            /* crtam zelenu podlogu */
+            ctx.fillStyle = 'forestGreen';
+            ctx.fillRect(0, 0, 550, 375);  
+
+            /* crtam okvir igralista */
+            ctx.lineWidth = 1;  
+            ctx.strokeStyle = 'white';  
+            ctx.beginPath();
+            ctx.moveTo(25, 375);
+            ctx.lineTo(25, 25);
+            ctx.lineTo(525, 25);
+            ctx.lineTo(525, 375);
+            ctx.stroke();
+
+            /* crtam gol - zadana sirina 80 */
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = 'black';
+            ctx.beginPath();
+            ctx.moveTo(235, 25);  /* x = 275 - 40 */
+            ctx.lineTo(315, 25);  /* x = 275 + 40 */
+            ctx.stroke();
+
+            /* crtam unutarnji okvir gola */
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = 'white';
+            ctx.beginPath();
+            ctx.moveTo(227, 25);  /* npr. x = 235 - (16/2) */
+            ctx.lineTo(227, 57);  /* dolje; npr. y = 25 + 2*16 */
+            ctx.lineTo(323, 57);  /* desno; npr. x = 315 + (16/2) */
+            ctx.lineTo(323, 25);  /* gore */
+            ctx.stroke();
+
+            /* crtam vanjski okvir gola */
+            ctx.beginPath();
+            ctx.moveTo(179, 25);  /* npr. x = 227 - 3*16 */
+            ctx.lineTo(179, 121); /* npr. y = 25 + 3*32 */
+            ctx.lineTo(371, 121);  /* npr. x = 323 + 3*16 */
+            ctx.lineTo(371, 25);
+            ctx.stroke();  
+
+            /* crtam "polukruznicu" */
+            /* namjestit cu da tetiva koju radi vanjski okvir gola ima duljinu npr. 112 (gol + 32)*/
+            /* te da je sredisnji kut = PI/2 => elementarna geometrija => */
+            /* iz toga dobivam da je radijus = 79, a da je y koordinata sredista = 65 */
+            ctx.beginPath(); 
+            ctx.arc(275, 65, 79, Math.PI/4, 3*Math.PI/4, false);
+            ctx.stroke();
+        }
+
+        function nacrtaj_loptu_i_igrace(data)
+        {
+            ctx.lineWidth = 1;  
+            ctx.strokeStyle = 'black';  
+
+            /* crtam igrace prvog tima */
+            ctx.fillStyle = data.tim1.boja;
+            for(let i = 0; i < data.tim1.igraci.length; i++)
+                nacrtaj_igraca(data.tim1.igraci[i]);
+                
+            /* crtam igrace drugog tima */
+            ctx.fillStyle = data.tim2.boja;
+            for(let i = 0; i < data.tim2.igraci.length; i++)
+                nacrtaj_igraca(data.tim2.igraci[i]);
+
+            /* crtam loptu */
+            ctx.fillStyle = 'white';
+            ctx.strokeStyle = 'white';
+
+            if(data.tip_situacije === 'offside')
+            {
+                ctx.beginPath();
+                /* koord. moraju biti one na canvasu => zato + 25 */
+                ctx.arc(data.lopta[0].x + 25, data.lopta[0].y + 25, 7, 0, 2*Math.PI, false);
+                ctx.fill();  /* ispunjava plohu omedenu upravo definiranom krivuljom */
+
+                ctx.moveTo(data.lopta[0].x + 25, data.lopta[0].y + 25);
+                ctx.lineTo(data.lopta[1].x + 25, data.lopta[1].y + 25);
+                ctx.stroke();
+            }
+
+            if(data.tip_situacije === 'gol')
+            {
+                ctx.beginPath();
+                /* koord. moraju biti one na canvasu => zato + 25 */
+                ctx.arc(data.lopta[1].x + 25, data.lopta[1].y + 25, 7, 0, 2*Math.PI, false);
+                ctx.fill();  
+
+                ctx.moveTo(data.lopta[1].x + 25, data.lopta[1].y + 25);
+                ctx.lineTo(data.lopta[0].x + 25, data.lopta[0].y + 25);
+                ctx.stroke();
+            }
+        }
+
+        function nacrtaj_igraca(igrac)
+        {
+            /* KOORD. SU SREDISTE IGRACA? => zato - 16/2, tj. - 8 */
+            /* koord. moraju biti one na canvasu => zato + 25 */
+            ctx.strokeRect(igrac.x - 8 + 25, igrac.y - 8 + 25, 16, 16);
+            ctx.fillRect(igrac.x - 8 + 25, igrac.y - 8 + 25, 16, 16);
+        }
+
+    </script> 
+</body>
+</html>
+
+<!--
+    ALTERNATIVNO RJESENJE ZADATKA? (pokusati napraviti tako, i vidjeti funkcionira li):
+    ukoliko je tip situacije = offside: 
+    pri crtanju igraca na canvasu, napraviti iznad odgovarajuci kvadratni div za igraca 
+    pridruziti tom div-u odgovarajuci event handler
+    pri promjeni prikazane situacije, remove-ati sve divove s klasom igrac iz dokumenta
+-->

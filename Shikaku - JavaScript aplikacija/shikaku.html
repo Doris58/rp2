@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shikaku - Dobrodošli!</title>
+
+    <script src="https://rp2.studenti.math.hr/~zbujanov/dz3/shikaku.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.js"></script>
+
+    <style>
+        th, td
+        {
+            font-weight: bold;
+            border: 1px solid black;
+            height: 40px;
+            width: 40px;
+            text-align: center;
+            background-color: white;  /*DODALA SAM OVO!!!!*/
+        }
+
+        table { border: 1px solid black; border-collapse: collapse; background-color: white; color: black; }
+
+        .boja { width: 120px; height: 20px; }
+
+        .cestitka { background-color: gold; border: 5px solid goldenrod; padding: 10px; width: 300px; font-weight: bold; } /*ne isti border-width i padding! */
+
+        /*#popis_boja { float: right; }*/
+    </style>
+     
+</head>
+<body>
+        <select name = "game_variant"></select> <input type = "button" id = "btn_start" value = "Započni igru!"/> 
+        <!-- input type = submit kad se salje php skripti na obradu? -->
+
+        <br/> <br/> <br/> 
+        
+        <p id = "cestitka"></p> <!-- jer zelim da se doda tu, a s body.append bi doslo ispod popisa boja! -->
+
+        <br/> <br/> <!--  ili <div id = "mjesto_za_cestitku"></div> -->
+   
+        <table></table> <div id = "popis_boja"></div>
+    
+
+        <script>
+            $(document).ready(function()
+            {
+                let izbornik = $('select');
+                izbornik.html('<option selected>' + game[0].name + '</option>');
+
+                let option;
+                for(let i = 1; i < game.length; i++)
+                {
+                    option = $('<option>' + game[i].name + '</option>');
+                    izbornik.append(option);
+                }
+                    //document.write("<option>" + game[i].name + "</option>");
+
+                let btn_start = $('#btn_start');
+                btn_start.on('click', iscrtaj_pocetnu_tablicu);
+
+            });
+            //document.write("<option selected>" + game[0].name + "</option>");
+            
+            let igra; 
+
+            function iscrtaj_pocetnu_tablicu()
+            {
+                $('title').html('Shikaku - Igram');
+
+                $('#cestitka').html('');
+                $('#cestitka').removeClass('cestitka');
+                //ili ... $('#cestitka').css('background-color: ""; border: ""; padding: ""');
+
+                let name = $('select').val();
+                //let igra;
+                for(let i = 0; i < game.length; i++)
+                {
+                    if(name === game[i].name)
+                    {
+                        igra = game[i];   // pridruzivanje objekta!
+                        break;
+                    }
+                }
+
+                $('table').html('');
+                
+                let redak, data;
+                for(let i = 0; i < igra.size; i++)
+                {
+                    redak = $('<tr> </tr>'); //2. nacin (provjeriti): $('table').append($('<tr>')); ... kao u PHP-u
+
+                    for(let j = 0; j < igra.size; j++)
+                    {
+                        data = $('<td style = "background-color: white" id = "data' + i + j + '"></td>'); //$('table').append($(isto ovo...))
+                        //style = "background-color: white"
+                        //data.css('background-color', 'white');
+                        redak.append(data);  //redak.html(string); ??
+                    }
+
+                    $('table').append(redak); //$('table').append($('</tr>'));
+                    //$('table').append(novi_red); //$('body').append($('<br/>'));
+                }
+
+                let n = igra.num.length, i, j, k, broj;
+                for(k = 0; k < n; k++)  //(*) da, odvojeno, jer necu gore u petlji traziti za svaki i i j posotji li u nizovima
+                //u igra takav broj, tj broj za tu celiju!
+                {
+                    i = igra.row[k] - 1;
+                    j = igra.col[k] - 1;
+                    broj = igra.num[k];
+
+                    $('#data' + i + j).html(broj);
+                }
+
+                $('#popis_boja').html('<p>Odaberi boju: </p>');//<br/><br/>');
+
+                let boja, radio, novi_red = $('<br/>');
+                for(k = 0; k < n; k++)
+                {
+                    //$('#popis_boja').append(novi_red);
+                    //$('#popis_boja').append(novi_red);
+
+                    //(1) boja = $('<div class = "boja" id = "boja' + k + '"> <input type = "radio" name = "boja" value = "' + igra.color[k] + '"/></div>');
+                    boja = $('<div class = "boja" id = "boja' + k + '"> </div>');
+                    radio = $('<input type = "radio" name = "boja"/>');
+                    boja.css('background-color', igra.color[k]);
+                    radio.val(boja.css('background-color'));
+                    boja.html(radio);
+                    //boja.css('background-color', igra.color[k]);
+                    //.addClass('boja'), .attr('id', 'boja' + k), ali doda li se divu ili inputu?
+                    //ili gore odmah div style = "background-color:' + igra.color[k] + '" ..'
+                    //onda mi uz (*), ni ne treba mozda ovaj id koji je izrazen preko k ?
+                    $('#popis_boja').append(boja);
+                    //(1)$('#boja' + k).css('background-color', igra.color[k]); //(*) moze i odvojeno, ali ovdje ne treba!!
+
+                    $('#popis_boja').append($('<br/>')); //novi_red x 2
+                    //ili dodati ispod prazni div iste visine i sirine? - moze i s class = boja
+
+                    //$('#popis_boja').append(novi_red);
+                    //$('#popis_boja').append(novi_red);
+                }
+
+                //Da spriječite iskakanje kontekstnog menija prilikom klika na desni gumb miša, 
+                //na odgovarajućem elementu elem postavite:
+                $('td').on("contextmenu", function() { return false; });
+                //Nakon toga, možete dodati novi handler koji reagira na desni klik.
+
+                $('td').on('mousedown', obradi_klik_na_polje); 
+                //ovim retkom nadalje svi td su pretplaceni na ovu fju!
+                //moze i u document.ready fju: (opet u fji!!):
+                //$('body')/$('table')(ne tr!!).on('mousedown', 'td', obradi_klik_na_polje)
+            }
+
+            let odabrana_boja, odabrano_prvo_polje = 0; 
+            //jer ne mogu (s jQuery) provj ima li neko polje (td) (u dok) crvenu boju bordera?
+            //zato sam uvela ovu globalnu varijablu
+            let prvi_redak = -1, prvi_stupac = -1; //da se vide i u drugom slucaju kad obr. drugo polje!
+            //kao i odabrana boja da se vidi u oba pozivaiste funckije!
+
+            let iskoristene_boje = [];
+
+            function obradi_klik_na_polje(event) // ($(this) se automatski prenese u handler?
+            {
+                if(event.button === 0)
+                    crtanje_pravokutnika($(this));
+                if(event.button === 2)
+                    brisanje_pravokutnika($(this)); //ovaj this je jedan jedinstveni td?
+            }
+
+            function brisanje_pravokutnika(polje)
+            {
+                if(polje.css('background-color') === $('table').css('background-color')) //=== 'white'
+                    return;
+                
+                let boja = polje.css('background-color');
+
+                //let koordinate_polja = $(this).attr('id');
+                let koordinate_polja = polje.attr('id');
+                let redak = Number(koordinate_polja[4]);
+                let stupac = Number(koordinate_polja[5]);
+     
+
+                /* detektiram pravokutnik u kojem je polje na koje smo kliknuli */
+                let r = redak - 1;
+                while(r >= 0 && $('#data' + r + stupac).css('background-color') === boja)
+                    r--;
+                let prvi_redak = r + 1;
+            
+                r = redak + 1;
+                while(r < igra.size && $('#data' + r + stupac).css('background-color') === boja)
+                    r++;
+                let zadnji_redak = r - 1;
+
+                let s = stupac - 1;
+                while(s >= 0 && $('#data' + redak + s).css('background-color') === boja)
+                    s--;
+                let prvi_stupac = s + 1;   
+
+                s = stupac + 1;
+                while(s < igra.size && $('#data' + redak + s).css('background-color') === boja)
+                    s++;
+                let zadnji_stupac = s - 1;
+
+                /* brisem pronadeni pravokutnik */
+                for(let i = prvi_redak; i <= zadnji_redak; i++)
+                    for(let j = prvi_stupac; j <= zadnji_stupac; j++)
+                    {
+                        //$('#data' + i + j).css('background-color', 'white');
+                        //$('#data' + i + j).css('border', '1px');
+                        $('#data' + i + j).css({'background-color': 'white', 'border-width': '1px'}); //ovdje gore
+
+                        //if($('#data' + i + j).html() !== '' && ) // ***
+                        if($('#data' + i + j).css('color') !== $('table').css('color'))
+                            $('#data' + i + j).css('color', 'black'); //ili ovo postaviti samo svima gore
+
+                    }    
+
+                let index_boje = iskoristene_boje.indexOf(boja);
+                if(index_boje > -1)
+                    iskoristene_boje.splice(index_boje, 1);
+
+                /* mozda je upravo izbrisan pobjednicki pravokutnik */
+                $('#cestitka').html('');
+                $('#cestitka').removeClass('cestitka');
+            }
+
+            function crtanje_pravokutnika(polje)
+            {
+                //let koordinate_polja = $(this).attr('id');
+                let koordinate_polja = polje.attr('id');
+
+                if(odabrano_prvo_polje === 0)
+                {
+                    /*let*/ odabrana_boja = $('input[name = "boja"]:checked').val(); //[type = "radio"] ?
+
+                    //sto vrati ako nijedna nije odabrana?
+                    if(odabrana_boja === undefined)  //LOGICNO!!!
+                        return;
+
+                    //if()
+                    for(let i = 0; i < iskoristene_boje.length; i++)
+                    {
+                        if(iskoristene_boje[i] === odabrana_boja)
+                            return;
+                    }
+
+                    if(polje.css('background-color') !== $('table').css('background-color'))  //!== white
+                        return;
+                        
+                        //moze i prvo provjera je li bijelo ili ne !!!
+                    //polje.css('border', 'red 2px'); // moze li i border?
+                    polje.css({'border-color': 'red', 'border-width': '3px'});               
+                    //{ 'width': '192px', 'height': '50px', 'text-align': 'right' }
+
+                        //let koordinate_polja = $(this).attr('id'); //id je atribut, a ne css svojstvo!
+                    prvi_redak = koordinate_polja[4]; //id = dataij
+                    prvi_stupac = koordinate_polja[5]; 
+                        //ne trebam da dodem do brojeva ii j parsirati string,
+                        //vec mogu pristupiti ovako elemntima jer tocno znam gdje se nalaze u stringu!!
+
+                    odabrano_prvo_polje = 1;
+                }
+                else
+                {
+                    $('#data' + prvi_redak + prvi_stupac).css({'border-color': 'black', 'border-width': '1px'});
+                    odabrano_prvo_polje = 0;
+
+                        //STAVITI OVO NA POCETAK FJE JER JE ZAJEDNICKO I ZA PRVO I ZA DRUGO POLJE!
+                        //let koordinate_polja = $(this).attr('id'); //moze se ovo!! ok.
+                    let zadnji_redak = Number(koordinate_polja[4]);
+                    let zadnji_stupac = Number(koordinate_polja[5]);
+
+                    if(zadnji_redak < prvi_redak || zadnji_stupac < prvi_stupac)
+                    {
+                        //otkazuje se sve? //ili samo return , da nastavi birati drugo polje?
+                        //$('#data' + prvi_redak + prvi_stupac).css('border-color', 'black');
+                        //odabrano_prvo_polje = 0;
+                        return; //*
+                    }
+                    //else //ne treba else, ako je iznad return
+                    //{
+                    for(let i = prvi_redak; i <= zadnji_redak; i++)
+                                // (*) kad fja za jquery vraca svojstvo vraca samo za jedan (za prvi)
+                                //samo jedan element kolekcije, onda je on i prvi!!
+                                //na taj nacin imamo obje funkcionalnosti omogucene!!
+                        for(let j = prvi_stupac; j <= zadnji_stupac; j++)
+                        {   
+                            if($('#data' + i + j).css('background-color') !== $('table').css('background-color')) // (*) //!== 'white' !!!!!!
+                            {
+                                        //$('#data' + prvi_redak + prvi_stupac).css('border-color', 'black');
+                                        //odabrano_prvo_polje = 0;
+                                //$('#data' + i + j).html($('#data' + i + j).css('background-color'));
+                                //$('#data' + i + j).html('*');
+                                return;
+                            }   
+                        }
+
+                    let count = 0;
+                    let broj_i, broj_j;
+
+                    for(let i = prvi_redak; i <= zadnji_redak; i++)
+                        for(let j = prvi_stupac; j <= zadnji_stupac; j++)
+                        {   //moram sve ove u unutarnjoj petlji jer za id treba i i i j ! (**)
+                            if(i === prvi_redak)
+                                $('#data' + i + j).css('border-top-width', '3px');
+                            if(j === prvi_stupac)
+                                $('#data' + i + j).css('border-left-width', '3px');
+                            if(i === zadnji_redak)
+                                $('#data' + i + j).css('border-bottom-width', '3px');
+                            if(j === zadnji_stupac)
+                                $('#data' + i + j).css('border-right-width', '3px');
+
+                                    //ne postaviti gore npr svima neku novu klasu pravokutnik, pa onda ovdje SAMO
+                                    //(tj bez petlji) postaviti svima iz kolekcije (jQ) isto css svojstvo
+                                    //$('.pravokutnik').css('background-color', odabrana_boja);
+                                    // a ne i zbog (**) dodatnog
+                            $('#data' + i + j).css('background-color', odabrana_boja); // (*)  
+ 
+                            if($('#data' + i + j).html() !== '') // ***  //&& !== ' '  
+                            {
+                                count++;
+
+                                if(count === 1)
+                                {
+                                    broj_i = i;  //let broj_i = i; let broj_j = j; //lok varijable u petlji ?
+                                    broj_j = j;
+                                }
+                            }
+                        }
+
+                    iskoristene_boje.push(odabrana_boja);
+
+                    if(count === 1)
+                    {
+                        let povrsina_pravokutnika = (zadnji_redak - prvi_redak + 1) * (zadnji_stupac - prvi_stupac + 1);
+                        let broj = Number($('#data' + broj_i + broj_j).html());
+                        if(broj === povrsina_pravokutnika)
+                            $('#data' + broj_i + broj_j).css('color', 'red'); //zato trebam pamtiti i i j, a ne samo broj!
+
+                            /* mozda je upravo nacrtan pobjednicki pravokutnik */
+                        provjeri_pobjedu();
+                    }
+
+
+                    //$('#data' + prvi_redak + prvi_stupac).css('border-color', 'black');
+                    //odabrano_prvo_polje = 0;
+                    //}
+                }
+            }
+
+            // i u ovoj se fji koristi igra !!
+            function provjeri_pobjedu()
+            {
+                /* pobjeda <=> svi brojevi su crvene boje */
+                for(let i = 0; i < igra.size; i++)
+                    for(let j = 0; j < igra.size; j++)
+                    {
+                        if($('#data' + i + j).html() !== '' && $('#data' + i + j).css('color') === $('table').css('color')) //** !== 'red'
+                            return;
+                    }
+
+                //let cestitka = $('<p id = "cestitka"> Bravo, uspješno si završio/la igru! </p>');
+                //$('body').append(cestitka);
+                $('#cestitka').html('Bravo, uspješno si završio/la igru!');
+                //$('#cestitka').css('background-color: gold; border: 5px solid goldenrod; padding: 5px');
+                $('#cestitka').addClass('cestitka');
+            }        
+        </script>
+</body>
+</html>
